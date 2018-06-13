@@ -385,7 +385,7 @@ def jdKeywordsPriceByUrl(usr):
 
 def jdProductsByUrl(search_id, product_id, url):
     kwprice = jdKeywordsPriceByUrl(url)
-
+    print("0s")
     data_price = {
         'price': kwprice["price"],
         'search_id': search_id,
@@ -422,7 +422,7 @@ def jdProducts(product_id, keywords, e_keywords, o_keywords, searchId, productId
     response = urllib.request.urlopen(request)
     lines = response.readlines()
 
-
+    prods ={}
     for line in lines:
         strLine = line.decode("utf-8")
         if "author" in strLine :
@@ -437,8 +437,18 @@ def jdProducts(product_id, keywords, e_keywords, o_keywords, searchId, productId
          # if jdtwo.lower() == "false" and twoword in ware["wname"]:
         #    continue
         itemUrl = "https://item.m.jd.com/product/" + ware["wareid"] + ".html"
-        # if international == 0 and ware["international"]:
-        #     continue
+        # print(ware["productext2"])
+        # print(international)
+        print(ware["productext2"])
+        if int(ware["productext"])==25728:
+            continue
+        if  int(ware["productext2"])==0 or int(ware["productext2"])==1 or int(ware["productext2"])==387 or int(ware["productext2"]) == 34819 or int(ware["productext2"])==259 or int(ware["productext2"])==11 or int(ware["productext2"])==9 or int(ware["productext2"])==2051:
+            continue
+        # if int(ware["productext2"]) != 3 and int(ware["productext2"]) != 2 and int(ware["productext2"]) != 8159  and int(
+        #          ware["productext2"]) != 65539 :
+        #      print("ssssssssssssssssssssssssssssssss")
+        #      print(itemUrl)
+        #      continue
         if float(huiyaPrice) / float(ware["dredisprice"]) > beyondPrice and huisaleState == 1:
             continue
         # if ware["international"]:
@@ -633,31 +643,31 @@ def deletePriceBySearchId(searchId):
     
 
 def scanPrice(product_id, keywords, e_keywords, o_keywords, searchId, international, twohand):
-    if e_keywords == None:
-        e_keywords = ""
-    if o_keywords == None:
-        o_keywords = ""        
-    query = ("SELECT name, product_id,price,saleState FROM wy_reptilian_commodity where product_id=" + product_id + " or  ")
-    likes = lambda key : " name like '%" + key + "%'" 
-    nlikes = lambda key : " name not like '%" + key + "%'"
-    olikes = lambda key : " name like '%" + key + "%'"
-    likesQuery = list(map(likes, keywords.split(",")))
+    # if e_keywords == None:
+    #     e_keywords = ""
+    # if o_keywords == None:
+    #     o_keywords = ""
+    query = ("SELECT name, product_id,price,saleState FROM wy_reptilian_commodity where product_id=" + product_id) #+ " or  ")
+    # likes = lambda key : " name like '%" + key + "%'"
+    # nlikes = lambda key : " name not like '%" + key + "%'"
+    # olikes = lambda key : " name like '%" + key + "%'"
+    # likesQuery = list(map(likes, keywords.split(",")))
     inProductIds = []
-    if e_keywords == "":
-
-        sql = query + " and ".join(likesQuery)
-    else:
-        nlikesQuery = list(map(nlikes, e_keywords.split(",")))
-        sql = query + " and ".join(likesQuery) + " and " + " and ".join(nlikesQuery)
-    
-    if o_keywords != "":
-        nlikesQuery = list(map(olikes, o_keywords.split(",")))
-        sql = sql + " and " + "(" + " or ".join(nlikesQuery) + ")" 
+    # if e_keywords == "":
+    #
+    #     sql = query + " and ".join(likesQuery)
+    # else:
+    #     nlikesQuery = list(map(nlikes, e_keywords.split(",")))
+    #     sql = query + " and ".join(likesQuery) + " and " + " and ".join(nlikesQuery)
+    #
+    # if o_keywords != "":
+    #     nlikesQuery = list(map(olikes, o_keywords.split(",")))
+    #     sql = sql + " and " + "(" + " or ".join(nlikesQuery) + ")"
     try:
         conn = connectToDb()
         cursor = conn.cursor()
         productIds = getProductIdsFromPrice(cursor, searchId)
-        cursor.execute(sql)
+        cursor.execute(query)
 
 #       huiyaPrice = docs[product_id]["price"]
 
@@ -694,10 +704,71 @@ def scanPrice(product_id, keywords, e_keywords, o_keywords, searchId, internatio
         refresProductCaches()
         jdProducts(product_id, keywords, e_keywords, o_keywords, searchId, productIds, inProductIds, international, twohand)
         deletePrices(searchId, set(productIds) - set(inProductIds))
-        updateMaxMinAvg()
+        updateMaxMinAvgs(productId,searchId)
     finally:
         cursor.close()
         conn.close()
+
+def scanaddprice(product_id, keywords, e_keywords, o_keywords, searchId, international, twohand):
+        # if e_keywords == None:
+        #     e_keywords = ""
+        # if o_keywords == None:
+        #     o_keywords = ""
+        query = (
+                    "SELECT name, product_id,price,saleState FROM wy_reptilian_commodity where product_id=" + product_id)#+ " or  ")
+        # likes = lambda key: " name like '%" + key + "%'"
+        # nlikes = lambda key: " name not like '%" + key + "%'"
+        # olikes = lambda key: " name like '%" + key + "%'"
+        # likesQuery = list(map(likes, keywords.split(",")))
+        inProductIds = []
+        # if e_keywords == "":
+        #
+        #     sql = query + " and ".join(likesQuery)
+        # else:
+        #     nlikesQuery = list(map(nlikes, e_keywords.split(",")))
+        #     sql = query + " and ".join(likesQuery) + " and " + " and ".join(nlikesQuery)
+        #
+        # if o_keywords != "":
+        #     nlikesQuery = list(map(olikes, o_keywords.split(",")))
+        #     sql = sql + " and " + "(" + " or ".join(nlikesQuery) + ")"
+        try:
+            conn = connectToDb()
+            cursor = conn.cursor()
+            productIds = getProductIdsFromPrice(cursor, searchId)
+            cursor.execute(query)
+
+            #       huiyaPrice = docs[product_id]["price"]
+
+            for (name, productId, price, saleState) in cursor:
+
+                # if huiyaPrice / float(price) > beyondPrice:
+                #     continue
+                # if seller == config.get("words", "weiya") and str(productId) != product_id:
+                #     continue
+                data_price = {
+                    'search_id': searchId,
+                    'product_id': productId,
+                    'price': price,
+                    'seller': "纬雅",
+                    'saleState': saleState,
+                    'self': 1,
+                    'description': name,
+                    'src': "pp",
+                    'two_hand': 0,
+                    'url': productId,
+                    "create_date": getFormatDate(),
+                    "update_date": getFormatDate()
+                }
+                inProductIds.append(str(productId))
+                if str(productId) in productIds:
+                    cursor.execute(update_price, data_price)
+                else:
+                    cursor.execute(add_price, data_price)
+            conn.commit()
+            # updateMaxMinAvg()
+        finally:
+            cursor.close()
+            conn.close()
 
 
 def scanPrices(keywords, e_keywords, o_keywords, searchId):
@@ -761,12 +832,12 @@ def scanPrices(keywords, e_keywords, o_keywords, searchId):
         conn.close()
         
 def updateMaxMinAvg():
-    update1 = '''update search s set min_price_id=(select id from price pp where s.id=pp.search_id and price =
-                (select min(price) from price p where s.id=p.search_id and s.product_id!=p.product_id and p.two_hand=0 group by search_id) limit 1)'''
+    update1 = '''update search s set min_price_id=(select id from price pp where s.id=pp.search_id and pp.src='jd' and price = 
+                (select min(price) from price p where s.id=p.search_id and s.product_id!=p.product_id and p.two_hand=0 and p.src='jd' group by search_id) limit 1)'''
     update2 = '''update search s set max_price_id=(select id from price pp where s.id=pp.search_id and price =
                 (select max(price) from price p where s.id=p.search_id and s.product_id!=p.product_id and p.two_hand=0 group by search_id) limit 1)
             '''
-    update3 = "update search s set avg_price=(select avg(price) from price p where s.id=p.search_id and saleState=1 and p.two_hand=0 group by search_id)"
+    update3 = "update search s set avg_price=(select avg(price) from price p where s.id=p.search_id and saleState=1 and p.two_hand=0 and src='jd' group by search_id)"
     update4 = "update price p , (select price, search_id from price pp where pp.seller='%s') t set p.gap_price=p.price - t.price where p.search_id=t.search_id"
     update5 = "update search s set count=(select count(*) from price p where p.search_id=s.id and seller!='%s' and saleState=1 )"
     weiya = config.get("words", "weiya")
@@ -784,6 +855,31 @@ def updateMaxMinAvg():
         conn.close()
     pass
 
+
+def updateMaxMinAvgs(productId,searchId):
+    update1 = '''update search s set min_price_id=(select id from price pp where s.id=pp.search_id and pp.src='jd' and price = 
+                (select min(price) from price p where s.id=p.search_id and s.product_id!=p.product_id and p.two_hand=0 and p.src='jd' group by search_id) limit 1) '''
+    update2 = '''update search s set max_price_id=(select id from price pp where s.id=pp.search_id and price =
+                (select max(price) from price p where s.id=p.search_id and s.product_id!=p.product_id and p.two_hand=0 group by search_id) limit 1)
+            '''
+    update3 = "update search s set avg_price=(select avg(price) from price p where s.id=p.search_id and saleState=1 and p.two_hand=0 and src='jd' group by search_id)"
+    update4 = "update price p , (select price, search_id from price pp where pp.seller='%s') t set p.gap_price=p.price - t.price where p.search_id=t.search_id and p.search_id="+str(searchId)
+    update5 = "update search s set count=(select count(*) from price p where p.search_id=s.id and seller!='%s' and saleState=1 )"
+    weiya = config.get("words", "weiya")
+    whereh=" where s.product_id="+productId
+    try:
+        conn = connectToDb()
+        cursor = conn.cursor()
+        cursor.execute(update1+whereh)
+        cursor.execute(update2+whereh)
+        cursor.execute(update3+whereh)
+        cursor.execute(update4 % (weiya,))
+        cursor.execute(update5 % (weiya,)+whereh)
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+    pass
 
 def deletePrices(searchId, productIds):
     try:
@@ -817,7 +913,7 @@ def scanAllPrice():
     print("自动更新")
     refresProductCaches()
     sql = ("select p.id, p.search_id, p.product_id, src, s.keywords, s.e_keywords, s.o_keywords, s.is_auto, s.two_hand, p.url, s.product_id, s.international from price p "
-            "left join search s on s.id=p.search_id")
+            "left join search s on s.id=p.search_id where   p.id>239939 and p.id<240840  and p.search_id !=5643 and p.search_id !=5504 and p.search_id !=657  and p.search_id !=1267 and p.search_id !=5871 and p.search_id !=1268  and p.search_id !=5883 and p.search_id !=884 AND p.search_id!=2330  AND p.search_id!=281   AND p.search_id!=2377 and p.search_id!=334 and p.search_id !=1050" )#5504 #5643 5500 and p.id<239991 where  p.id>239490 and p.search_id !=5643 and p.search_id !=5504 and p.search_id !=657  and p.search_id !=1267 and p.search_id !=5871 and p.search_id !=1268  and p.search_id !=5883 and p.search_id !=884
     conn = connectToDb()
     cursor = conn.cursor()
     cursor.execute(sql)
@@ -833,6 +929,7 @@ def scanAllPrice():
                                  "product_id": productId, "is_auto":is_auto, "search_id":searchId, "url":url, "sproduct_id":sproduct_id,
                                  "international":international, "two_hand":two_hand}
     for (searchId, search) in searchs.items():
+        print(searchId)
         inProductIds = []
         productIds = getProductIdsFromPrice(cursor, searchId, "jd")
         if search["is_auto"]:
@@ -841,8 +938,63 @@ def scanAllPrice():
             jdProductsByUrl(search["search_id"], search["product_id"], search["url"])
         deletePrices(searchId, set(productIds) - set(inProductIds))
     pass
-    updateMaxMinAvg()
+    # updateMaxMinAvg()
     logger.info("End scan price")
+
+
+def scanAllPrices():
+    logger.info("Start scan price")
+    inProductIds = []
+    refresProductCaches()
+    # sql = ("select id,keywords, e_keywords, o_keywords,product_id,international,two_hand from search ")
+    sql = ("select a.id,a.keywords, a.e_keywords, a.o_keywords,a.product_id,a.international,a.two_hand from search a INNER JOIN "+
+ "(select count(search_id) as id,search_id from price GROUP BY search_id) b ON a.id=b.search_id WHERE a.id>5497 ")#and a.id>5497 5528 b.id=1 and
+    conn = connectToDb()
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    searchs = {}
+    for (id, keywords, e_keywords, o_keywords, product_id, international, two_hand) in cursor:
+         #   if skuIds != None:
+         #         fetchPriceByAttributes(priceId, productId, skuIds.split(","))
+         # else:
+            if e_keywords == None:
+                e_keywords = ""
+            searchs[product_id] = {"keywords":keywords, "e_keywords":e_keywords, "o_keywords":o_keywords,
+                                 "product_id": product_id, "id":id,
+                                 "international":international, "two_hand":two_hand}
+
+    for (product_id, search) in searchs.items():
+        productIds = getProductIdsFromPrice(cursor, product_id, "jd")
+        inProductIds.append(str(product_id))
+        print(search["product_id"])
+        jdProducts(search["product_id"],search["keywords"],search["e_keywords"],search["o_keywords"],search["id"],productIds,inProductIds,search["international"],search["two_hand"])
+    pass
+
+def scanAllPricehs():
+    logger.info("Start scan price")
+    inProductIds = []
+    refresProductCaches()
+    # sql = ("select id,keywords, e_keywords, o_keywords,product_id,international,two_hand from search")
+    sql=("select id,keywords, e_keywords, o_keywords,product_id,international,two_hand from search")
+    conn = connectToDb()
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    searchs = {}
+    for (id, keywords, e_keywords, o_keywords, product_id, international, two_hand) in cursor:
+         #   if skuIds != None:
+         #         fetchPriceByAttributes(priceId, productId, skuIds.split(","))
+         # else:
+            if e_keywords == None:
+                e_keywords = ""
+            searchs[product_id] = {"keywords":keywords, "e_keywords":e_keywords, "o_keywords":o_keywords,
+                                 "product_id": product_id, "id":id,
+                                 "international":international, "two_hand":two_hand}
+
+    for (product_id, search) in searchs.items():
+        print("id是：")
+        print(product_id)
+        scanaddprice(str(search["product_id"]), search["keywords"],search["e_keywords"],search["o_keywords"], search["id"], search["international"],search["two_hand"])
+    pass
 
 
 def fetchPriceByAttributes(priceId, productId, attributeIds):
