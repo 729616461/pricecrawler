@@ -173,11 +173,12 @@ def querySearchByProductId(product_id):
 
 @app.route('/search/<path:searchId>', methods=['GET'])
 def querySearchById(searchId):
+    print("这？")
     logger.info("Get Search by id " + str(searchId))
     query = '''
         select s.id,keywords,e_keywords,o_keywords, s.description, s.count, p.id, p.description, p.price, p.gap_price, p.saleState,p.self, p.seller, p.url, p.product_id,
              p.update_date, s.is_auto, p.is_input, pp.price,(select price from price where id=s.max_price_id) max_price,s.avg_price,pp.url,p.two_hand,s.two_hand
-    from search s inner join price p on s.id=p.search_id left join price pp on pp.id=s.min_price_id where s.id=
+    from search s LEFT join price p on s.id=p.search_id left join price pp on pp.id=s.min_price_id where s.id=
     ''' 
     query = query + str(searchId)
     try:
@@ -201,8 +202,6 @@ def handleSearchResults(cursor, expand=False):
     results = {}
     weiya=config.get("words", "weiya")
     for (sid, keywords, e_keywords, o_keywords, desc, count, pid, pdesc, price, gap_price, saleState,self, seller, url, product_id, updateDate, is_auto, is_input, min_price,max_price,avg_price, min_url, ptwo_hand,stwo_hand) in cursor:
-        print("description"+str(self))
-        print("description" + seller)
         if sid not in results:
             prices = []
             results[sid] = {"id":sid, "keywords" : keywords, "e_keywords": e_keywords, "o_keywords":o_keywords, "description":desc, "prices":prices, "is_auto":is_auto, "min" : min_price, "max":max_price, "avg" : avg_price, "count":count, "min_url": min_url, "two_hand":stwo_hand}
@@ -213,19 +212,12 @@ def handleSearchResults(cursor, expand=False):
         if weiya == seller:
             refPrice={"id":pid, "description":pdesc, "price" : price, "saleState":saleState, "seller" : seller, "url" : url, "self" : self, "product_id":product_id, "updateDate" : datetime.strftime(updateDate,"%Y-%m-%d %H:%M"), "two_hand":ptwo_hand}
             results[sid]["target"]=refPrice
-        else:           
-            prices.append({"id":pid, "description":pdesc, "price" : price, "gap_price" : gap_price, "seller" : seller, "url" : url,"self" : self, "product_id":product_id, "updateDate" : datetime.strftime(updateDate,"%Y-%m-%d %H:%M"), "is_input":is_input, "two_hand":ptwo_hand})
-    
-    for search in results.values():
-        if search["min"] != None:
-            search["gap_price"] = search["min"] - search["target"]["price"]
         else:
-            search["gap_price"] = None
-        
-    for value in results.values():
-        if not expand:
-            del value["prices"]
-    return results 
+            prices.append({"id":pid, "description":pdesc, "price" : price, "gap_price" : gap_price, "seller" : seller, "url" : url,"self" : self, "product_id":product_id, "updateDate" : datetime.strftime(updateDate,"%Y-%m-%d %H:%M"), "is_input":is_input, "two_hand":ptwo_hand})
+
+    return results
+
+
 
 @app.route('/search', methods=['POST'])
 def addSearch():
@@ -411,6 +403,7 @@ def newPps(product_id):
 
 @app.route('/search/<path:search_id>/price', methods=['POST'])
 def addPrice(search_id):
+    print(search_id+"alei")
     price = request.json
     if "url" not in price:
         return responseError("E0002", ("url",))
